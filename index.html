@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Trial Triage">
+<title>CRC Trial Triage</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#eceef1;color:#15181c;font-size:14px;padding-bottom:44px}
+
+.hdr{background:#0f1e2e;color:#fff;padding:calc(env(safe-area-inset-top,0px) + 11px) 16px 10px;position:sticky;top:0;z-index:100}
+.hdr-title{font-size:17px;font-weight:700;letter-spacing:-.3px}
+.hdr-sub{font-size:11px;color:#8fa6bd;margin-top:2px}
+.clinicbar{display:flex;align-items:center;gap:6px;margin-top:9px}
+.clinicbar .lbl{font-size:11px;color:#8fa6bd;font-weight:600;flex-shrink:0}
+.clinic-seg{display:flex;gap:4px;flex:1}
+.clinic-seg button{flex:1;padding:6px 2px;border:1px solid #26445f;background:#16324a;border-radius:7px;font-size:12px;font-weight:700;color:#9fb6cd;cursor:pointer}
+.clinic-seg button.active{background:#4db3ff;color:#06263f;border-color:#4db3ff}
+.clinic-note{font-size:10.5px;color:#ffd08a;margin-top:6px;display:none}
+.clinic-note.show{display:block}
+
+.step{padding:11px 16px 3px}
+.step-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6b7683;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;background:#0f1e2e;color:#fff;border-radius:50%;font-size:9px;margin-right:5px}
+.optional{font-size:10px;color:#a3abb4;font-weight:600;text-transform:none;letter-spacing:0}
+
+.dx-grid{display:flex;flex-wrap:wrap;gap:7px}
+.dx-chip{flex:0 0 auto;padding:9px 13px;border-radius:11px;font-size:13.5px;font-weight:600;border:1.5px solid #d3d8de;background:#fff;color:#2a2f36;cursor:pointer;transition:all .12s}
+.dx-chip .c{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
+.dx-chip.active{color:#fff;border-color:transparent}
+.dx-chip.active .c{background:#fff !important}
+
+.va-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.va-scroll::-webkit-scrollbar{display:none}
+.va-chip{flex:0 0 auto;padding:8px 11px;border-radius:9px;border:1px solid #d3d8de;background:#fff;font-size:13px;font-weight:600;color:#3a424c;cursor:pointer;white-space:nowrap}
+.va-chip.on{background:#0f1e2e;color:#fff;border-color:#0f1e2e}
+
+.cst-row{display:flex;align-items:center;gap:8px}
+.cst-row input{width:110px;padding:9px 11px;border:1px solid #d3d8de;border-radius:9px;font-size:16px;outline:none;background:#fff}
+.cst-row .u{font-size:13px;color:#8a929b}
+.cst-row .clr{font-size:11px;color:#5a7fa8;font-weight:600;cursor:pointer;margin-left:auto}
+
+.seg{display:flex;background:#dde1e6;border-radius:10px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{flex:1 1 auto;min-width:70px;padding:8px 6px;border:none;background:transparent;border-radius:8px;font-size:12.5px;font-weight:600;color:#5a626b;cursor:pointer;transition:all .12s}
+.seg button.active{background:#fff;color:#0f1e2e;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+.banner{margin:12px 16px 0;padding:11px 13px;border-radius:11px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;line-height:1.35}
+.banner.go{background:#dff3e6;color:#136b38}
+.banner.treat{background:#fdecdc;color:#8a4b12}
+.banner .big{font-size:19px;flex-shrink:0}
+.counter{margin:10px 16px 0;font-size:12px;font-weight:700;color:#5f6873}
+.counter .n{color:#136b38}
+
+.cards{padding:8px 16px 0;display:flex;flex-direction:column;gap:10px}
+.card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(15,30,46,.09);transition:opacity .15s}
+.card.dim{opacity:.6}
+.card.out{opacity:.5}
+.out-ribbon{display:none;background:#ffe2e0;color:#c0342b;font-size:11.5px;font-weight:700;padding:6px 14px;align-items:center;gap:6px}
+.card.out .out-ribbon{display:flex}
+.card.out .card-name{text-decoration:line-through;text-decoration-color:#c0342b80}
+
+.card-top{padding:12px 14px 10px;cursor:pointer}
+.card-row1{display:flex;align-items:flex-start;gap:9px}
+.card-name{font-size:16px;font-weight:700;letter-spacing:-.3px;flex:1;min-width:0}
+.card-sponsor{font-size:11.5px;color:#8a929b;font-weight:500;margin-top:1px}
+.status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0;text-transform:uppercase;letter-spacing:.02em}
+.st-enroll{background:#d3f0dd;color:#136b38}
+.st-closing{background:#ffe2e0;color:#c0342b}
+.st-upcoming{background:#e5e8ec;color:#5f6873}
+.st-paused{background:#f3e4d0;color:#8a5a1a}
+
+.badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:3px}
+.mod-oral{background:#d9f2ea;color:#0d6a52}
+.mod-ivt{background:#dbe8fb;color:#1a539c}
+.mod-sc{background:#e9e0fa;color:#5b3aa0}
+.mod-implant{background:#faeccf;color:#8a5a0d}
+.mod-gene{background:#fbe0ef;color:#a51f6e}
+.va-badge{background:#eef0f3;color:#3a424c;font-weight:700}
+.va-badge.hit{background:#d3f0dd;color:#136b38}
+.site-here{background:#d3f0dd;color:#136b38;font-weight:700}
+.site-travel{background:#faeccf;color:#8a5a0d;font-weight:700}
+.site-plain{background:#eef0f3;color:#3a424c;font-weight:700}
+.trans-ok{background:#d9f2ea;color:#0d6a52}
+.trans-tbd{background:#f4ecd6;color:#8a6a1a}
+.trans-no{background:#ececf0;color:#8a8f97}
+.cond-note{background:#fdf1dd;color:#8a5a12;font-weight:600}
+
+.fit{background:#f4f6f8;border-radius:9px;padding:8px 11px;margin:10px 14px 0;font-size:12px;line-height:1.45;color:#3a424c}
+.fit b{color:#0f1e2e}
+
+.gates{padding:0 14px 12px}
+.gates-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#c0342b;margin:11px 0 4px}
+.gate{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;line-height:1.4;color:#2a2f36;padding:5px 0;cursor:pointer;border-bottom:1px solid #f4f6f8}
+.gate:last-child{border-bottom:none}
+.gate .box{width:17px;height:17px;border-radius:5px;border:1.5px solid #cdd3da;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;transition:all .12s}
+.gate.checked .box{background:#c0342b;border-color:#c0342b}
+.gate.checked span{color:#98a0a8;text-decoration:line-through}
+
+.more-btn{width:100%;text-align:center;padding:9px;background:#f4f6f8;border:none;border-top:1px solid #edf0f2;font-size:12px;font-weight:600;color:#5a7fa8;cursor:pointer}
+.detail{display:none;padding:2px 14px 14px;border-top:1px solid #f0f2f4}
+.detail.open{display:block}
+.d-sec{margin-top:12px}
+.d-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8a929b;margin-bottom:5px}
+.d-moa{background:#f4f6f8;border-radius:8px;padding:9px 11px;font-size:12px;line-height:1.5;color:#3a424c}
+.d-list{list-style:none}
+.d-list li{font-size:12px;line-height:1.5;color:#3a424c;padding:2.5px 0 2.5px 15px;position:relative}
+.d-list li::before{content:'•';position:absolute;left:2px;color:#a3abb4}
+.d-list.exc li::before{content:'✕';font-size:9px;color:#c0342b;top:4px}
+.d-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.d-meta span{font-size:11px;background:#f0f2f4;color:#5a626b;padding:3px 8px;border-radius:6px}
+
+.upc-toggle{margin:14px 16px 0;padding:11px 14px;background:#fff;border-radius:11px;font-size:13px;font-weight:600;color:#5f6873;cursor:pointer;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.upc-toggle .chev{transition:transform .2s;color:#a3abb4}
+.upc-toggle.open .chev{transform:rotate(180deg)}
+
+.browse{padding:12px 16px 0}
+.search{position:relative}
+.search input{width:100%;padding:9px 12px 9px 34px;background:#fff;border:none;border-radius:10px;font-size:15px;color:#15181c;outline:none;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#a3abb4}
+
+.foot{margin:18px 16px 0;padding:12px 14px;background:#fff;border-radius:11px;font-size:11px;line-height:1.55;color:#6b7683}
+.foot b{color:#2a2f36}
+.empty{text-align:center;padding:36px 20px;color:#8a929b}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title">CRC Trial Triage</div>
+  <div class="hdr-sub">Updated Aug 2026 · 22 trials · Enrolling + Upcoming</div>
+  <div class="clinicbar">
+    <span class="lbl">Seeing at</span>
+    <div class="clinic-seg" id="clinicSeg">
+      <button data-cl="BK">BK</button>
+      <button data-cl="OX">OX</button>
+      <button data-cl="VL">VL</button>
+      <button data-cl="PD">PD</button>
+      <button data-cl="SV">SV</button>
+    </div>
+  </div>
+  <div class="clinic-note" id="clinicNote"></div>
+</div>
+
+<div class="step">
+  <div class="step-label"><span><span class="step-num">1</span>Indication</span></div>
+  <div class="dx-grid" id="dxGrid"></div>
+</div>
+
+<div class="step">
+  <div class="step-label"><span><span class="step-num">2</span>BCVA (study eye)</span></div>
+  <div class="va-scroll" id="vaScroll"></div>
+</div>
+
+<div class="step">
+  <div class="step-label"><span><span class="step-num">3</span>CST</span><span class="optional">optional · needs OCT</span></div>
+  <div class="cst-row">
+    <input type="number" inputmode="numeric" id="cstInput" placeholder="µm" min="0">
+    <span class="u">µm</span>
+    <span class="clr" id="cstClr">clear</span>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-label"><span><span class="step-num">4</span>Treatment status</span></div>
+  <div class="seg" id="txSeg">
+    <button class="active" data-tx="any">Any</button>
+    <button data-tx="naive">Naïve</button>
+    <button data-tx="antiVEGF">Prior anti-VEGF</button>
+    <button data-tx="complement">Prior complement</button>
+  </div>
+</div>
+
+<div id="banner"></div>
+<div id="counter"></div>
+<div id="cards"></div>
+<div id="upcomingWrap"></div>
+
+<div class="browse">
+  <div class="search">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="search" id="searchBox" placeholder="Or search all trials by name / drug / MOA…" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+</div>
+
+<div class="foot">
+  <b>Fast gates come last</b> — after the list narrows by indication, VA, CST, and treatment status, tap the ⚡ gates the patient fails. <b>Site/transport</b> reflects the deck's site codes (OX = Oxnard, BK = Bakersfield, SB = Santa Barbara) and each protocol's transportation line. Nothing here is saved or sent; always confirm against the full protocol.
+</div>
+
+<script>
+const CLINIC_NAME={BK:'Bakersfield',OX:'Oxnard',VL:'Valencia',PD:'Palmdale',SV:'Simi Valley'};
+const SITE_NAME={BK:'Bakersfield',OX:'Oxnard',SB:'Santa Barbara'};
+const TRIAL_SITES=['BK','OX','SB'];
+
+const DX=[
+  {k:'GA',label:'GA',color:'#1d9e75'},
+  {k:'nAMD',label:'Wet AMD',color:'#378add'},
+  {k:'NPDR',label:'NPDR',color:'#ba7517'},
+  {k:'PDR',label:'PDR',color:'#c9601f'},
+  {k:'DME',label:'DME',color:'#d85a30'},
+  {k:'MESI',label:'Uveitic ME',color:'#d4537e'},
+  {k:'STGD',label:'Stargardt',color:'#7f77dd'},
+  {k:'RP',label:'RP',color:'#4f9d9d'}
+];
+const MOD={oral:['Oral','mod-oral'],ivt:['IVT','mod-ivt'],sc:['SC inject','mod-sc'],implant:['Implant','mod-implant'],gene:['Gene Tx','mod-gene']};
+const VA_OPTS=[['Any',null],['20/20',20],['20/25',25],['20/32',32],['20/40',40],['20/50',50],['20/63',63],['20/80',80],['20/100',100],['20/125',125],['20/160',160],['20/200',200],['20/400',400],['CF/HM',1600]];
+
+const T=[
+{id:'circle',dx:['GA'],name:'CIRCLE',sponsor:'Novartis · FWY003',status:'enroll',mod:'oral',va:'20/200+',vaMin:null,vaMax:200,
+ sites:['BK'],trans:'Provided',transL:'ok',prior:{naive:'ok',av:'exclude',comp:'cond'},
+ fit:'<b>Any GA that will take a daily pill</b> — the only GA trial allowing <b>subfoveal AND non-subfoveal</b>, naïve or prev-tx. 25% placebo.',
+ gates:['Any CNV ever, either eye','Center-involved DME (mild-mod NPDR OK)','Won\u2019t take a daily oral'],
+ moa:'Oral selective complement Factor B inhibitor — suppresses the alternative pathway. 4-arm 1:1:1:1 (3/15/50 mg vs placebo).',
+ incl:['Age ≥50','BCVA ≥20/200 (ETDRS ≥35)','GA 2.5–17.5 mm², subfoveal OR non-subfoveal','Multifocal OK if ≥1 lesion 1.25 mm²','Meningococcal/pneumococcal/H. flu vaccines'],
+ exc:['CNV present or any Hx, either eye','DME (mild-mod NPDR permitted)','Stroke or MI within 6 months'],
+ wo:'IVT complement inhibitors: 3-mo washout',stipend:'$105'},
+
+{id:'galaxy',dx:['GA'],name:'GALAXY',sponsor:'ONL Therapeutics · ONL1204',status:'enroll',mod:'ivt',va:'20/320+',vaMin:null,vaMax:320,
+ sites:['BK'],trans:'Provided (at randomization)',transL:'ok',prior:{naive:'ok',av:'exclude',comp:'cond'},
+ fit:'<b>Non-subfoveal GA</b> with a hyper-AF junctional zone, essentially injection-naïve. Neuroprotective, not complement.',
+ gates:['Subfoveal GA','No hyper-AF junctional zone','Any eMNV ever in SE','Prior IVT (except complement inh)','Any vitrectomy in SE'],
+ moa:'First-in-class Fas-mediated cell-death inhibitor — blocks photoreceptor/RPE apoptosis. IVT Q12–24W, 75% active / 25% sham.',
+ incl:['Age ≥55','BCVA SE ≥20/320, FE ≥20/400','GA 2.125–20.125 mm², non-subfoveal','≤1725 µm from foveal center','Hyper-AF junctional zone required'],
+ exc:['Hx exudative MNV in SE','Prior IVT except approved complement inhibitors','Retinal-toxic systemic drug <90 days','Any incisional retinal surgery / vitrectomy in SE'],
+ wo:'Only complement inhibitors, 12-wk washout · NO screening visit',stipend:'$100'},
+
+{id:'sienna',dx:['GA'],name:'SIENNA',sponsor:'Regeneron · Pozelimab + Cemdisiran',status:'enroll',mod:'sc',va:'20/80+',vaMin:null,vaMax:80,
+ sites:['OX'],trans:'Provided (JMAC)',transL:'ok',prior:{naive:'ok',av:'exclude',comp:'cond'},
+ fit:'<b>Healthier GA ≤85 with good VA who wants no eye injection</b> — subcutaneous systemic C5 blockade.',
+ gates:['Age >85','HbA1c >8%','MNV ever, either eye','Organ/BM transplant, or systemic immunosuppression'],
+ moa:'Pozelimab (anti-C5 mAb) + cemdisiran (siRNA suppressing hepatic C5). SC Q4W. Combo vs cemdisiran mono vs placebo.',
+ incl:['Age 50–85','BCVA ≥20/80','GA 2.5–17.5 mm²','HbA1c ≤8.0%','Meningococcal/pneumococcal vaccines'],
+ exc:['GA from non-AMD cause (Stargardt, tox maculopathy)','MNV/exudation history either eye','Confounding ocular disease (DR, ME, uncontrolled glaucoma, FTMH)','Systemic complement inhibitor <6 mo','Solid organ / BM transplant','Chronic systemic steroids or immunosuppression'],
+ wo:'Complement inhibitors only, 6-mo washout',stipend:'$100 (+$78 caregiver)'},
+
+{id:'gallop',dx:['GA'],name:'GALLOP',sponsor:'Apellis · APL3007',status:'enroll',mod:'sc',va:'20/100+',vaMin:null,vaMax:100,
+ sites:['BK','OX'],trans:'Provided (≤$300)',transL:'ok',prior:{naive:'ok',av:'exclude',comp:'cond'},
+ fit:'<b>Non-subfoveal GA already willing to be on Syfovre</b> — all arms get Syfovre IVT plus SC C3 siRNA.',
+ gates:['Subfoveal GA','No hyper-AF','CNV in study eye (FE CNV OK)','Won\u2019t accept Syfovre IVT','Any macular laser ever / A-fib / arrhythmia'],
+ moa:'APL3007 siRNA targeting C3, SC q2–3mo, PLUS mandatory Syfovre IVT in all arms. 1:1:1.',
+ incl:['Age ≥60','BCVA ≥20/100','GA 2.5–17.5 mm², non-subfoveal','Hyper-AF present','Multifocal OK if ≥1 lesion 1.25 mm²','Vaccines required'],
+ exc:['CNV present/Hx in study eye','Prior IP <3 mo, or IVT <3 mo (except Syfovre)','Malignancy not treated >1 yr','Macular-region laser','A-fib / arrhythmias'],
+ wo:'Other IVT 3-mo washout (no washout for Syfovre)',stipend:'$100'},
+
+{id:'adx038',dx:['GA'],name:'ADX-038-202',sponsor:'ADARx · CFB siRNA',status:'enroll',mod:'sc',va:'20/320+ (20/100 if subfoveal)',vaMin:null,vaMax:320,
+ sites:['BK'],trans:'Provided (sponsor appr.)',transL:'ok',prior:{naive:'ok',av:'exclude',comp:'cond'},
+ fit:'<b>GA including subfoveal (72-pt cap), age ≤89, wanting infrequent SC dosing</b> every 3 months.',
+ gates:['Age >89','GA >12.5 mm² (smaller cap)','CNV present/Hx in SE','Known HIV','Intraocular surgery <3 mo'],
+ moa:'ADX-038 CFB-targeting siRNA, SC ~q3mo (6 doses through M18). Suppresses systemic + ocular Factor B.',
+ incl:['Age 60–89','BCVA ≥20/320 (≥20/100 if foveal center involved)','GA 2.5–12.5 mm²','≥1 lesion within 1.5 mm ring of fovea','Foveal involvement permitted (72-pt cap)','Vaccines required'],
+ exc:['GA from non-AMD cause','CNV active or Hx in SE','Intraocular surgery / CE <3 mo','RD surgical repair Hx','Recurrent encapsulated-bacteria infection','Malignancy active or <5 yr','Known HIV','Transfusion <90 days'],
+ wo:'All IVT in SE: 6-mo washout to randomization (3-mo screening)',stipend:'$125'},
+
+{id:'sitala',dx:['GA'],name:'SITALA',sponsor:'Sitala Bio · STL303',status:'upcoming',mod:'oral',va:'20/320+',vaMin:null,vaMax:320,
+ sites:['BK'],trans:'TBD',transL:'tbd',prior:{naive:'ok',av:'exclude',comp:'cond'},
+ fit:'<b>(Upcoming)</b> Non-subfoveal GA who prefers an oral option — small-molecule Factor B inhibitor.',
+ gates:['Subfoveal GA','GA >10.16 mm²','CNV present/Hx in SE','Moderate NPDR or worse, either eye','Dialysis / transplant, or cardiac event <2 yr'],
+ moa:'STL303 oral Factor B inhibitor — reduces C3a/C5a/MAC. 1:1:1 (50 mg / 125 mg / placebo).',
+ incl:['Age ≥60','BCVA ≥20/320','AMD in both eyes','GA 2.5–10.16 mm², non-subfoveal','Vaccines required'],
+ exc:['CNV present/Hx in SE, active CNV in FE','Moderate NPDR or worse either eye','End-stage liver/kidney disease','Cardiac event <2 yr','Active or Hx idiopathic/autoimmune uveitis'],
+ wo:'IVT complement inhibitors in SE: 6 mo',stipend:'TBD'},
+
+{id:'sanofiga',dx:['GA'],name:'SANOFI DFI18231',sponsor:'Sanofi · SAR446597 (GA gene tx)',status:'upcoming',mod:'gene',va:'20/63–20/320',vaMin:63,vaMax:320,
+ sites:['OX'],trans:'TBD',transL:'tbd',prior:{naive:'ok',av:'exclude',comp:'exclude'},
+ fit:'<b>(Upcoming)</b> GA (subfoveal OK) wanting one-time gene therapy — but must be complement-inhibitor-naïve.',
+ gates:['Any complement-inhibitor IVT ever (exclusionary)','DR in either eye','Vitrectomy in SE, or glaucoma device/MIGS','Immunocompromised','CVA <1 yr / malignancy <5 yr'],
+ moa:'IVT single-dose gene therapy encoding antibody fragments blocking C1s + Bb. 4-cohort dose escalation.',
+ incl:['Age ≥60','BCVA 20/63–20/320, FE ≥20/200','GA 2.5–14.0 mm², subfoveal OR non-subfoveal'],
+ exc:['Complement-inhibitor IVT in SE (exclusionary)','GA from non-AMD cause','Intraocular surgery <3 mo / vitrectomy Hx','DR either eye','Immunocompromised','Macular laser/PDT/thermotherapy in SE'],
+ wo:'Non-complement GA/dry-AMD tx: 6 mo · complement inh = exclusionary',stipend:'TBD'},
+
+{id:'aquarius',dx:['nAMD'],name:'AQUARIUS',sponsor:'Adverum · Ixo-vec (gene tx)',status:'closing',mod:'gene',va:'20/32–20/200',vaMin:32,vaMax:200,
+ sites:['BK'],trans:'Provided (≤$300)',transL:'ok',prior:{naive:'ok',av:'exclude',comp:'exclude'},
+ fit:'<b>Closing Aug 14 2026 — tx-naïve slots only.</b> One-and-done gene therapy for wet AMD with a clean steroid/uveitis history.',
+ gates:['Closes Aug 14 2026 (tx-naïve only)','Any prior gene therapy ever','Any uveitis / inflammation ever','Steroid-related IOP rise ever','Won\u2019t commit to 27-wk Durezol taper','Day-1 fluid response not met'],
+ moa:'Single IVT Ixo-vec (AAV) = sustained aflibercept "biofactory." Requires difluprednate taper over 27 wks.',
+ incl:['Age ≥50','BCVA SE 20/32–20/200, FE ≥20/200','Day-1 response: full fluid resolution or CST reduction (10% if >300; 5% if ≤300)'],
+ exc:['Any prior gene therapy','Scar/fibrosis/atrophy ≥50% of lesion or central fovea','RD history','IOP rise from topical steroid ever','Uveitis / inflammation ever','Intraocular/periocular steroid <6 mo','Complement inhibitor for GA in SE','Stroke/MI <6 mo'],
+ wo:'Anti-VEGF 28 days · IVT/periocular steroid 6 mo',stipend:'$100'},
+
+{id:'hyacinth',dx:['nAMD'],name:'HYACINTH',sponsor:'Amgen · ABP-938 (Pavblu HD)',status:'enroll',mod:'ivt',va:'20/32–20/320',vaMin:32,vaMax:320,
+ sites:['OX'],trans:'Provided',transL:'ok',prior:{naive:'ok',av:'exclude',comp:'exclude'},
+ fit:'<b>Clean tx-naïve subfoveal wet AMD.</b> Biosimilar-to-Eylea-HD head-to-head, short 5-month study.',
+ gates:['Any prior treatment (naïve only)','No IRF/SRF subfoveal CNV','DR / DME / uveitis, either eye','Prior PPV in SE','BP ≥160/95'],
+ moa:'ABP-938 (aflibercept 8 mg biosimilar) vs Eylea HD, Q4W ×3 then DRA-based dosing.',
+ incl:['Age ≥50','BCVA 20/32–20/320, FE better than CF','Active tx-naïve subfoveal CNV with IRF/SRF in central subfield'],
+ exc:['Scar/fibrosis/atrophy in central subfield','Prior PPV in SE','RD Hx in SE','Any intraocular/periocular surgery <12 wk','DR/DME/uveitis/other retinal vascular disease, either eye','BP ≥160/95','CVA/MI within 24 wk','Dialysis or renal transplant'],
+ wo:'Any prior anti-VEGF or ocriplasmin = exclusionary · long-acting steroid 16 wk',stipend:'$100'},
+
+{id:'kalaris',dx:['nAMD'],name:'KALARIS',sponsor:'Theia · TH103 (KLRS-100)',status:'enroll',mod:'ivt',va:'20/40–20/200',vaMin:40,vaMax:200,cst:{floor:325},
+ sites:['BK'],trans:'Provided (Scout)',transL:'ok',prior:{naive:'ok',av:'exclude',comp:'exclude'},
+ fit:'<b>Tx-naïve wet AMD</b> — durable "dual-action" VEGF decoy, dose-escalation Ph 1. (Now enrolling.)',
+ gates:['Any prior IVT injection / implant','Any prior IVT steroid','CST <325 µm','Lesion >22.5 mm²','Foveal fibrosis/atrophy'],
+ moa:'TH103 humanized VEGF decoy-receptor (aflibercept class) with HSPG anchoring for durability. Dose escalation 0.5–10 mg.',
+ incl:['Tx-naïve nAMD, lesion >50% of total area','Subfoveal or juxta/extrafoveal with foveal involvement','Leakage on FA','IRF/SRF ≥325 µm central subfield','Lesion ≤22.5 mm²','BCVA 20/40–20/200, FE ≥20/200'],
+ exc:['Any prior IVT injection or device','Any prior peri/IVT steroid','Foveal structural damage limiting VA','RPE rip or large PED ≥350 µm','Peripapillary CNV','PCV / CSR','Idiopathic/autoimmune uveitis either eye'],
+ wo:'Naïve only — no washout path',stipend:'$100 (+$50 PK)'},
+
+{id:'stat',dx:['nAMD'],name:'STAT',sponsor:'Oculgen · OCUL101',status:'upcoming',mod:'ivt',va:'20/32–20/320',vaMin:32,vaMax:320,
+ sites:['SB'],trans:'Provided (≤$400)',transL:'ok',prior:{naive:'ok',av:'exclude',comp:'exclude'},
+ fit:'<b>(Upcoming)</b> Tx-naïve wet AMD, especially with concurrent GA — bispecific anti-VEGF + anti-C5 trap.',
+ gates:['Any prior IVT anti-VEGF in SE','Any prior intraocular surgery','Monocular (no physical FE)','Uncontrolled glaucoma >25 on ≥2 gtts','No Avastin allowed in FE'],
+ moa:'OCUL101 first-in-class bispecific "trap" (anti-VEGF + anti-C5). 4 arms incl. Eylea comparator; q4w×3 → q8w → PRN.',
+ incl:['Age 50–89','nAMD ± GA, subfoveal/juxtafoveal CNV','If GA: 2.5–17 mm², within 1500 µm of fovea, not involving fovea','BCVA 20/32–20/320, FE ≥CF'],
+ exc:['Non-AMD macular pathology with fluid','RPE tear involving macula','Inactive nAMD','Subretinal heme/fibrosis >50% lesion','Vitreous hemorrhage','Uncontrolled glaucoma','Any prior intraocular surgery','Monocular','Stroke/MI <6 mo'],
+ wo:'Naïve in SE — no anti-VEGF in study eye · no Avastin in FE',stipend:'$101 (+$25 PK)'},
+
+{id:'sanofiwamd',dx:['nAMD'],name:'SANOFI DFI17940 Pt 2',sponsor:'Sanofi · SAR402663 (gene tx)',status:'paused',mod:'gene',va:'20/25–20/200',vaMin:25,vaMax:200,
+ sites:['BK'],trans:'Not listed',transL:'no',prior:{naive:'exclude',av:'ok',comp:'na'},
+ fit:'<b>(Paused)</b> Recently-diagnosed, previously-treated wet AMD — one-time FLT01 anti-VEGF gene therapy.',
+ gates:['Enrollment PAUSED','Tx-naïve (needs ≥1 anti-VEGF past yr)','Diagnosed >12 mo ago','PED >350 µm over central subfield','DR or uveitis, either eye'],
+ moa:'Single IVT SAR402663 encoding soluble FLT01 — sequesters VEGF-A + PlGF. 2-dose Part II expansion (≤20 pts dx >12 mo).',
+ incl:['Age 50–90','BCVA 20/25–20/200, FE ≥20/200','Diagnosed within 12 months','≥1 prior anti-VEGF in past year','Active leakage on FA or IRF/SRF or CST >300'],
+ exc:['Tx-naïve','PED peak >350 µm over central subfield','RD Hx in SE','DR or uveitis either eye','Cancer <5 yr','MI <6 mo / stroke or TIA <12 mo','Any macular laser Hx in SE'],
+ wo:'Requires ≥1 anti-VEGF past year · anti-VEGF 28-day washout before V2',stipend:'—'},
+
+{id:'helios3',dx:['NPDR'],name:'HELIOS 3',sponsor:'Ocular Therapeutix · OTX-TKI',status:'enroll',mod:'implant',va:'20/40+',vaMin:null,vaMax:40,cst:{ceil:324},
+ sites:['BK','OX'],trans:'Provided',transL:'ok',prior:{naive:'ok',av:'cond',comp:'na'},
+ fit:'<b>Moderate–severe NPDR at DRSS exactly 47 or 53, no DME</b> — durable axitinib implant. (Now enrolling.)',
+ gates:['DRSS not exactly 47 or 53','CST ≥325 (CI-DME)','VH or iris/angle NV ever','PRP ever / focal laser <6 mo','Fluocinolone implant (Iluvien) ever','GLP-1 or insulin started <3 mo'],
+ moa:'OTX-TKI biodegradable axitinib hydrogel implant, IVT at Day 1 & Week 48 (Q48W) vs sham. Sustained VEGFR blockade.',
+ incl:['Age ≥18','BCVA ≥20/40 (ETDRS ≥69)','T1/T2 DM','Moderate-severe NPDR (DRSS 47 or 53)','DM meds stable ≥3 mo','HbA1c <12%'],
+ exc:['CI-DME ≥325 µm','Retinal NV on exam/FA, or NVI/NVA in SE','VH not from PVD','RRD/ERM/VMT/MH/RPE tear in SE','Vitreoretinal or glaucoma-filtering surgery Hx','CE/keratorefractive <3 mo','PRP ever or focal laser <1000 µm of center <6 mo','Iluvien ever / Ozurdex <6 mo','IOI/infection either eye <3 mo','Gene therapy either eye','Retinal-toxic meds (HCQ, PPS)','GLP-1/insulin started <3 mo','HTN >170/100','MI/CVA <6 mo','Active malignancy <2 yr'],
+ wo:'Anti-VEGF 6 mo · steroids 6 mo · no gene therapy either eye',stipend:'TBD'},
+
+{id:'naavigate',dx:['NPDR'],name:'NAAVIGATE',sponsor:'AbbVie · RGX-314 (sura-vec) [M23-415]',status:'enroll',mod:'gene',va:'20/40+',vaMin:null,vaMax:40,
+ sites:['BK','OX'],trans:'Provided',transL:'ok',prior:{naive:'ok',av:'cond',comp:'na'},
+ fit:'<b>Moderate–severe NPDR (DRSS 47/53) without CI-DME</b> wanting durable suprachoroidal gene therapy. (Now enrolling.)',
+ gates:['Active CI-DME','PRP / any retinal laser ever','Prior vitrectomy','RVO history (any)','Uveitis / glaucoma / OHT'],
+ moa:'Suprachoroidal AAV8 gene therapy (RGX-314) via Clearside microinjector — soluble anti-VEGF Fab. 4 arms 2:2:1:1 (sura-vec ± Durezol/Pred Forte vs sham).',
+ incl:['Age ≥18','BCVA ≥20/40','T1/T2 DM','Moderate–severe NPDR (DRSS 47 or 53), no CI-DME','HbA1c <12%'],
+ exc:['Active CI-DME','NV from non-DR cause','PRP or retinal laser ever','RD present/Hx','Prior vitrectomy','RVO (CRVO/BRVO/CRAO/BRAO) history','Uveitis / scleral inflammation either eye','Glaucoma or OHT','MI/CVA <6 mo'],
+ wo:'IVT anti-VEGF/steroid 6 mo · ≤10 prior anti-VEGF in SE/36 mo · TKI implant 12 mo',stipend:'TBD'},
+
+{id:'drcr',dx:['PDR'],name:'DRCR AP | JCHR',sponsor:'DRCR Network',status:'enroll',mod:'ivt',va:'20/100+',vaMin:null,vaMax:100,
+ sites:['BK'],trans:'Not listed',transL:'no',prior:{naive:'ok',av:'cond',comp:'na'},
+ fit:'<b>Active PDR needing treatment, minimal prior PRP.</b> Randomizes faricimab+PRP vs vitrectomy+endolaser.',
+ gates:['Prior vitrectomy or any PRP ≥100 burns outside post. pole','CI-DME: men ≥320 / women ≥305','Significant VH precluding full PRP','TRD involving macula','TIA/CVA/MI <4 mo','Dialysis / transplant'],
+ moa:'Comparative effectiveness: faricimab 6 mg IVT + PRP (≤4 wk) vs vitrectomy + endolaser. 3-yr VA + tx-burden endpoints.',
+ incl:['Age ≥18','T1/T2 DM','Moderate PDR or worse requiring treatment','BCVA ≥20/100 (≥49 letters)','Naïve or previously treated'],
+ exc:['Prior PPV or any PRP ≥100 burns outside posterior pole','CI-DME ≥305 (F) / ≥320 (M)','Significant VH precluding full PRP','TRD involving macula','DME tx <6 mo · anti-VEGF (non-DME) <1 yr','Major ocular surgery <4 mo or anticipated <6 mo','BP >160/100','TIA/CVA/MI <4 mo','Dialysis/transplant'],
+ wo:'Anti-VEGF for non-DME indication 1 yr · DME tx 6 mo',stipend:'—'},
+
+{id:'alto',dx:['DME'],name:'ALTO',sponsor:'Kodiak · Tabirafusp-ted (KSI-501)',status:'upcoming',mod:'ivt',va:'20/40–20/320',vaMin:40,vaMax:320,cst:{floor:325},
+ sites:['BK','OX'],trans:'Provided',transL:'ok',prior:{naive:'ok',av:'cond',comp:'exclude'},
+ fit:'<b>(Upcoming)</b> Center-involved DME, naïve or prev-tx — long-acting bispecific VEGF + IL-6 trap aiming for fewer injections. 75% naïve / 25% prev-tx.',
+ gates:['CST <325','ME from RVO or wet AMD','High-risk PDR (VH, NVD, NVE)','Prior vitrectomy in SE / corneal transplant','Complement inhibitor in SE or prior Susvimo'],
+ moa:'Tabirafusp-ted (KSI-501) IVT — long-acting bispecific trap inhibiting VEGF + IL-6 for extended durability. 5:3:5 vs aflibercept; Q4W×6 → Q8W or individualized.',
+ incl:['Age ≥18','DME, T1/T2 DM, naïve or prev-tx','BCVA 20/40–20/320 (ETDRS 25–70)','CST ≥325 µm','HbA1c ≤12%','FE BCVA ≥20/200'],
+ exc:['ME in SE from RVO or wet AMD','High-risk PDR (VH/pre-ret heme, NVD, NVE)','PRP <12 wk','RD current/Hx in SE','Cataract sx <8 wk','Prior vitrectomy in SE','Corneal transplant SE','Uveitis either eye','Dialysis/transplant','MI or stroke <6 mo'],
+ wo:'Anti-VEGF 12 wk · Ozurdex/triamcinolone 12 wk · fluocinolone 3 yr · complement inh in SE excluded · prior Susvimo excluded',stipend:'$115'},
+
+{id:'bge102',dx:['DME'],name:'BGE-102',sponsor:'BioAge · NLRP3 inhibitor (oral)',status:'upcoming',mod:'oral',va:'20/25–20/300',vaMin:25,vaMax:300,cst:{floor:305},
+ sites:['BK'],trans:'TBD',transL:'tbd',prior:{naive:'ok',av:'cond',comp:'na'},
+ fit:'<b>(Upcoming)</b> Center-involved DME, naïve or prev-tx, injection-averse — oral NLRP3 inhibitor, short 3-month Ph 1b.',
+ gates:['PDR needing immediate PRP/anti-VEGF, or VH','PRP <4 mo','eGFR ≤30 (kidney failure G3b+)','Prior vitrectomy / RD / scleral buckle in SE','GLP-1 dose change <6 mo or during study'],
+ moa:'BGE-102 oral NLRP3 inhibitor QD — blocks inflammasome activation, lowering IL-1β/IL-18. 1:1:1 (drug+sham IVT / drug+ranibizumab / placebo+ranibizumab).',
+ incl:['Age 18–75','CI-DME, T1/T2 DM','BCVA 20/25–20/300 (ETDRS 24–78)','CST ≥320 µm (M) / ≥305 µm (F)','HbA1c ≤11%'],
+ exc:['PDR needing immediate PRP/anti-VEGF, or VH','PRP <4 mo','eGFR ≤30 (stage G3b or worse)','Vitrectomy / RD / scleral buckle Hx in SE','GLP-1 dose change during study or <6 mo prior','Cardiac abnormality (discuss with monitor)'],
+ wo:'Eylea/Vabysmo 4 mo · other anti-VEGF 3 mo · Ozurdex/Iluvien/Yutiq 6 mo · other steroids 6 mo',stipend:'TBD'},
+
+{id:'merck',dx:['DME'],name:'MERCK MK-8748',sponsor:'Merck · bispecific VEGF/Tie2',status:'upcoming',mod:'ivt',va:'20/32–20/320',vaMin:32,vaMax:320,cst:{floor:325},
+ sites:['BK','OX'],trans:'TBD',transL:'tbd',prior:{naive:'ok',av:'cond',comp:'exclude'},
+ fit:'<b>(Upcoming)</b> Center-involved DME, naïve or previously treated — check HIVE pre-screening.',
+ gates:['CST <325','Naïve dx >9 mo, or prev-tx started >3 yr ago','Active PDR in SE','Prior complement inhibitor, either eye','Uveitis, either eye'],
+ moa:'MK-8748 IVT bispecific — inhibits VEGF + activates Tie2 to stabilize vessels. Q4W×5 → Q8W. vs Eylea 2 mg.',
+ incl:['Age ≥18','T1/T2 DM','BCVA 20/32–20/320','CST ≥325','HbA1c ≤12%','Naïve: dx <9 mo · Prev-tx: started tx <3 yr'],
+ exc:['Active PDR in SE','PRP <90 d','Prior IVT complement inhibitor either eye','Uveitis Hx either eye','MI/stroke <180 d','Dialysis/transplant'],
+ wo:'EyleaHD/Vabysmo 120 d · other anti-VEGF 90 d · Ozurdex 180 d · Iluvien/brolucizumab exclusionary',stipend:'TBD'},
+
+{id:'mallow',dx:['DME'],name:'MALLOW',sponsor:'Boehringer Ingelheim · FZD4/LRP5',status:'upcoming',mod:'ivt',va:'20/40–20/320 (exp)',vaMin:40,vaMax:320,cst:{floor:320},
+ sites:['OX'],trans:'TBD',transL:'tbd',prior:{naive:'ok',av:'exclude',comp:'na'},
+ fit:'<b>(Upcoming)</b> Tx-naïve center-involved DME with a clean inflammatory history — novel Wnt-pathway agonist. (Sentinel cohort takes prev-tx.)',
+ gates:['Expansion cohort = tx-naïve only','Any ocular inflammation ever, either eye','Steroid (even topical) <1 mo','PRP in SE (expansion)','Any gene/cell therapy ever'],
+ moa:'BI 3812465 humanized FZD4/LRP5 agonist mAb — Wnt activation cuts permeability + revascularizes ischemia. IVT Q4W ×3.',
+ incl:['Age ≥18','T1/T2 DM','CST ≥320 (center-involving)','HbA1c <12%','Expansion: BCVA 20/40–20/320, treatment-naïve','Sentinel: BCVA ≤20/80'],
+ exc:['Active PDR or NVE/NVI/angle NV','Prior gene or cell therapy','Any ocular inflammation ever or immune-mediated eye disease','Corticosteroid (topical/systemic) <1 mo','Prior PRP in SE (expansion)','Any prior CI-DME tx in SE (expansion)','BP >160/95','Stroke/TIA/MI <12 mo'],
+ wo:'Sentinel only: ranibizumab/bevacizumab/aflibercept-2 12 wk · faricimab/aflibercept-8 16 wk · Ozurdex 6 mo',stipend:'TBD'},
+
+{id:'peak',dx:['MESI'],name:'PEAK / PINNACLE',sponsor:'Kodiak · KSI-101',status:'enroll',mod:'ivt',va:'20/25–20/320',vaMin:25,vaMax:320,cst:{floor:320},
+ sites:['BK','OX'],trans:'Provided',transL:'ok',prior:{naive:'ok',av:'cond',comp:'na'},
+ fit:'<b>Confirmed non-infectious uveitic macular edema.</b> Bispecific IL-6 + VEGF. CST routes the sub-study (see gates).',
+ gates:['Infectious etiology','AMD / DR / RVO causing the edema','IOP >25 or uncontrolled glaucoma','Vitrectomy or CE in SE <16 wk','Confounding systemic immunosuppression'],
+ moa:'KSI-101 bispecific IL-6 + VEGF IVT. Q4W to W20 → PRN from W24. 5 mg / 10 mg / placebo.',
+ incl:['Age ≥18','Non-infectious uveitic ME in ≥1 eye','BCVA 20/25–20/320 at screening','PEAK: CST ≥400 (Day-1 BCVA 25–70 ltrs)','PINNACLE: CST 320–399 (BCVA 25–78), or CST ≥400 with BCVA 71–78'],
+ exc:['Active ocular/periocular infection','Other retinal disease driving BCVA/CST (AMD, DR, RVO)','Uncontrolled glaucoma or IOP >25','Vitrectomy or CE in SE <16 wk','Confounding systemic immunosuppression','Active malignancy (except non-melanoma skin, prostate)'],
+ wo:'Anti-VEGF 8 wk · triamcinolone/Ozurdex 12 wk · topical steroid >3/day 14 d · topical NSAID 14 d',stipend:'$100 · rescue ≤$1000'},
+
+{id:'aurora',dx:['STGD'],name:'AURORA',sponsor:'Ray Therapeutics · RTx-021',status:'enroll',mod:'gene',va:'20/200–20/2000',vaMin:200,vaMax:2000,
+ sites:['BK'],trans:'Provided',transL:'ok',prior:{naive:'ok',av:'na',comp:'na'},
+ fit:'<b>Genetically-confirmed Stargardt with severe VA loss.</b> One-time optogenetic gene therapy; requires a steroid course.',
+ gates:['No ABCA4 / ELOVL4 / PROM1 confirmation','VA better than 20/200 or worse than 20/2000','Any prior gene/cell therapy or retinal implant','Prior PPV or aphakia in SE','Can\u2019t take prophylactic steroid regimen'],
+ moa:'RTx-021 optogenetic AAV — single IVT dose activates surviving inner-retinal cells to light. 3-cohort dose escalation. Prednisone + topical steroid required.',
+ incl:['Age ≥16','BCVA 20/200–20/2000','Stargardt: classic fleck phenotype and/or demarcated subfoveal AF loss','Genetic Dx: ABCA4, ELOVL4, or PROM1'],
+ exc:['Prior gene therapy (any), retinal implant, or cell therapy','Steroid responder with unmanageable IOP','Positive Hep B/C or HIV','Ocular surgery/injection <4 mo either eye','Prior PPV or aphakia in SE','Contraindication to steroid regimen'],
+ wo:'No prior ocular gene/cell therapy or implant',stipend:'None'},
+
+{id:'percept',dx:['RP'],name:'PERCEPT',sponsor:'Ray Therapeutics · RTx-015',status:'upcoming',mod:'gene',va:'~20/200–20/9000 (LogMAR 1.0–2.7)',vaMin:200,vaMax:9000,
+ sites:['BK','SB'],trans:'TBD',transL:'tbd',prior:{naive:'ok',av:'na',comp:'na'},
+ fit:'<b>(Upcoming)</b> Advanced RP, <b>gene-agnostic</b> — optogenetic gene therapy; no genetic confirmation required. For severe VA loss.',
+ gates:['Prior gene/cell therapy or retinal implant, either eye','Prior vitrectomy or aphakia in SE','Uncontrolled glaucoma >25','Refractive error outside −8 to +6 D','Steroid responder / immunosuppressed'],
+ moa:'RTx-015 optogenetic AAV2.7m8 expressing channelrhodopsin "ChRown" at retinal ganglion cells — restores light response independent of the causative mutation. Ph 2/3, 1:1:1 (two doses vs sham).',
+ incl:['Age ≥18','BCVA LogMAR 1.0–2.7 (~20/200–20/9000)','Clinical RP diagnosis, any mutation (genetic testing NOT required for eligibility)','ERG within 36 mo or done at screening (non-recordable OK if phenotype consistent with advanced RP)','Presence of RGCs and/or RNFL','FE not worse than LogMAR 2.7'],
+ exc:['Prior gene therapy (ocular or systemic), retinal implant, or cell therapy EITHER EYE','Another interventional study <6 mo','Uncontrolled glaucoma >25','High refractive error (outside −8 to +6 D)','Amblyopia or significant optic nerve disease','Known/suspected steroid responder','Immunocompromised / immunosuppressed','Prior vitrectomy or aphakia in SE','Cataract/other ocular surgery <120 d'],
+ wo:'No prior ocular gene/cell therapy or implant (either eye)',stipend:'TBD'}
+];
+
+let curClinic=null, curDx='GA', curTx='any', curSearch='';
+let patVA=null, patCST=null;
+const gateOut={};
+
+document.querySelectorAll('#clinicSeg button').forEach(b=>{
+  b.onclick=()=>{
+    if(curClinic===b.dataset.cl){curClinic=null;b.classList.remove('active');}
+    else{curClinic=b.dataset.cl;document.querySelectorAll('#clinicSeg button').forEach(x=>x.classList.remove('active'));b.classList.add('active');}
+    const note=document.getElementById('clinicNote');
+    if(curClinic && !TRIAL_SITES.includes(curClinic)){
+      note.className='clinic-note show';
+      note.textContent='⚠ '+CLINIC_NAME[curClinic]+' hosts no trials — every candidate travels to Bakersfield / Oxnard / Santa Barbara.';
+    }else{note.className='clinic-note';note.textContent='';}
+    render();
+  };
+});
+
+const dxGrid=document.getElementById('dxGrid');
+DX.forEach((d,i)=>{
+  const b=document.createElement('button');
+  b.className='dx-chip'+(i===0?' active':'');
+  b.innerHTML='<span class="c" style="background:'+d.color+'"></span>'+d.label;
+  b.onclick=()=>{curDx=d.k;curSearch='';document.getElementById('searchBox').value='';
+    document.querySelectorAll('.dx-chip').forEach(x=>{x.classList.remove('active');x.style.background='';});
+    b.classList.add('active');b.style.background=d.color;render();};
+  dxGrid.appendChild(b);
+});
+dxGrid.children[0].style.background=DX[0].color;
+
+const vaScroll=document.getElementById('vaScroll');
+VA_OPTS.forEach(([lbl,den])=>{
+  const c=document.createElement('div');c.className='va-chip'+(den===null?' on':'');c.textContent=lbl;
+  c.onclick=()=>{patVA=den;document.querySelectorAll('.va-chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');render();};
+  vaScroll.appendChild(c);
+});
+
+document.getElementById('cstInput').oninput=function(){patCST=this.value===''?null:parseInt(this.value,10);render();};
+document.getElementById('cstClr').onclick=()=>{patCST=null;document.getElementById('cstInput').value='';render();};
+
+document.querySelectorAll('#txSeg button').forEach(b=>{
+  b.onclick=()=>{curTx=b.dataset.tx;document.querySelectorAll('#txSeg button').forEach(x=>x.classList.remove('active'));b.classList.add('active');render();};
+});
+document.getElementById('searchBox').oninput=function(){curSearch=this.value.trim();render();};
+
+function txMatchList(t){
+  if(curTx==='any') return true;
+  if(curTx==='naive') return t.prior.naive!=='exclude';
+  if(curTx==='antiVEGF') return t.prior.av!=='exclude';
+  if(curTx==='complement') return t.prior.comp!=='exclude';
+  return true;
+}
+function condNote(t){
+  if(curTx==='antiVEGF' && t.prior.av==='cond') return 'Prior anti-VEGF: washout/limit applies';
+  if(curTx==='complement' && t.prior.comp==='cond') return 'Prior complement: washout applies';
+  return null;
+}
+function statusRank(s){return s==='enroll'?0:s==='closing'?1:s==='upcoming'?2:3;}
+function statusBadge(s){const m={enroll:['st-enroll','Enrolling'],closing:['st-closing','Closing soon'],upcoming:['st-upcoming','Upcoming'],paused:['st-paused','Paused']};return '<span class="status '+m[s][0]+'">'+m[s][1]+'</span>';}
+
+function autoReason(t){
+  if(patVA!=null){
+    if(t.vaMax!=null && patVA>t.vaMax) return 'VA below window';
+    if(t.vaMin!=null && patVA<t.vaMin) return 'VA too good for window';
+  }
+  if(patCST!=null && t.cst){
+    if(t.cst.floor && patCST<t.cst.floor) return 'CST < '+t.cst.floor+' (too thin)';
+    if(t.cst.ceil && patCST>t.cst.ceil) return 'CST > '+t.cst.ceil+' (DME present)';
+  }
+  return null;
+}
+function cardOut(t){return autoReason(t) || gateOut[t.id] || null;}
+function atHere(t){return curClinic && t.sites.includes(curClinic);}
+
+function siteBadge(t){
+  const names=t.sites.join(' / ');
+  if(!curClinic) return '<span class="badge site-plain">📍 '+names+'</span>';
+  if(atHere(t)) return '<span class="badge site-here">✓ At '+curClinic+'</span>';
+  return '<span class="badge site-travel">🚗 '+names+'</span>';
+}
+function transBadge(t){
+  const cls=t.transL==='ok'?'trans-ok':t.transL==='tbd'?'trans-tbd':'trans-no';
+  const need=curClinic && !atHere(t);
+  const label=(need?'Transport: ':'Transpo: ')+t.trans;
+  return '<span class="badge '+cls+'">'+(t.transL==='ok'?'✓ ':t.transL==='tbd'?'… ':'– ')+label+'</span>';
+}
+
+function cardHtml(t,dimUpcoming){
+  const mod=MOD[t.mod];
+  const outReason=cardOut(t);
+  const isOut=!!outReason;
+  const vaHit=(patVA!=null && !((t.vaMax!=null&&patVA>t.vaMax)||(t.vaMin!=null&&patVA<t.vaMin)));
+  const cnote=condNote(t);
+  const gates=t.gates.map(g=>{
+    const on=gateOut[t.id]===g;
+    return '<div class="gate'+(on?' checked':'')+'" onclick="tapGate(event,\''+t.id+'\',this)" data-g="'+g.replace(/"/g,'&quot;')+'"><span class="box">'+(on?'✓':'')+'</span><span>'+g+'</span></div>';
+  }).join('');
+  return '<div class="card'+(isOut?' out':(dimUpcoming?' dim':''))+'" id="card-'+t.id+'">'
+   +'<div class="out-ribbon">✕ Ruled out — '+(outReason||'')+'</div>'
+   +'<div class="card-top" onclick="toggle(\''+t.id+'\')">'
+   +'<div class="card-row1"><div><div class="card-name">'+t.name+'</div><div class="card-sponsor">'+t.sponsor+'</div></div>'
+   +'<div style="margin-left:auto">'+statusBadge(t.status)+'</div></div>'
+   +'<div class="badges"><span class="badge '+mod[1]+'">'+mod[0]+'</span><span class="badge va-badge'+(vaHit?' hit':'')+'">VA '+t.va+'</span>'+siteBadge(t)+transBadge(t)+(cnote?'<span class="badge cond-note">'+cnote+'</span>':'')+'</div>'
+   +'</div>'
+   +'<div class="fit">'+t.fit+'</div>'
+   +'<div class="gates"><div class="gates-lbl">⚡ Fast gates — tap any the patient fails</div>'+gates+'</div>'
+   +'<button class="more-btn" onclick="toggle(\''+t.id+'\')" id="btn-'+t.id+'">Full criteria ▾</button>'
+   +'<div class="detail" id="det-'+t.id+'">'
+   +'<div class="d-sec"><div class="d-lbl">Mechanism / design</div><div class="d-moa">'+t.moa+'</div></div>'
+   +'<div class="d-sec"><div class="d-lbl">Key inclusion</div><ul class="d-list">'+t.incl.map(x=>'<li>'+x+'</li>').join('')+'</ul></div>'
+   +'<div class="d-sec"><div class="d-lbl">Key exclusion</div><ul class="d-list exc">'+t.exc.map(x=>'<li>'+x+'</li>').join('')+'</ul></div>'
+   +'<div class="d-meta"><span>Site: '+t.sites.map(s=>SITE_NAME[s]).join(', ')+'</span><span>Transpo: '+t.trans+'</span><span>Washout: '+t.wo+'</span><span>Stipend: '+t.stipend+'</span></div>'
+   +'</div></div>';
+}
+
+function tapGate(ev,id,el){ev.stopPropagation();const g=el.getAttribute('data-g');if(gateOut[id]===g){delete gateOut[id];}else{gateOut[id]=g;}render();}
+function toggle(id){const d=document.getElementById('det-'+id),b=document.getElementById('btn-'+id);const open=d.classList.toggle('open');b.textContent=open?'Hide criteria ▴':'Full criteria ▾';}
+
+function sortCards(list){
+  return list.sort((a,b)=>{
+    if(curClinic){const ah=atHere(a)?0:1, bh=atHere(b)?0:1; if(ah!==bh) return ah-bh;}
+    return statusRank(a.status)-statusRank(b.status);
+  });
+}
+
+function render(){
+  const cards=document.getElementById('cards');
+  const banner=document.getElementById('banner');
+  const counter=document.getElementById('counter');
+  const upcWrap=document.getElementById('upcomingWrap');
+
+  if(curSearch){
+    banner.innerHTML='';counter.innerHTML='';upcWrap.innerHTML='';
+    const q=curSearch.toLowerCase();
+    const hits=T.filter(t=>[t.name,t.sponsor,t.moa,t.fit].some(s=>s.toLowerCase().includes(q)));
+    if(!hits.length){cards.innerHTML='<div class="empty">No trials match "'+curSearch+'"</div>';return;}
+    hits.sort((a,b)=>statusRank(a.status)-statusRank(b.status));
+    cards.innerHTML=hits.map(t=>cardHtml(t,t.status==='upcoming'||t.status==='paused')).join('');
+    return;
+  }
+
+  const all=T.filter(t=>t.dx.includes(curDx)&&txMatchList(t));
+  const open=sortCards(all.filter(t=>t.status==='enroll'||t.status==='closing'));
+  const upc=sortCards(all.filter(t=>t.status==='upcoming'||t.status==='paused'));
+  const dxName=DX.find(d=>d.k===curDx).label;
+  const txWord=curTx==='naive'?'naïve':curTx==='antiVEGF'?'prior anti-VEGF':curTx==='complement'?'prior complement':'';
+
+  if(open.length){
+    banner.className='banner go';
+    banner.innerHTML='<span class="big">✓</span><span>'+open.length+' open trial'+(open.length>1?'s':'')+' for '+dxName+(txWord?' · '+txWord:'')+'.'+(curClinic?' At-'+curClinic+' sites shown first.':'')+'</span>';
+    const possible=open.filter(t=>!cardOut(t)).length;
+    const screening=(patVA!=null||patCST!=null||Object.keys(gateOut).length>0);
+    counter.innerHTML= screening
+      ? '<span class="n">'+possible+' of '+open.length+' still possible</span>'+(possible===0?' — just treat.':'')
+      : '<span style="color:#8a929b;font-weight:600">Set BCVA / CST, or tap the ⚡ gates the patient fails, to rule out fast.</span>';
+  }else{
+    banner.className='banner treat';
+    banner.innerHTML='<span class="big">→</span><span>No open trials for '+dxName+(txWord?' · '+txWord:'')+' right now — treat with FDA-approved options.'+(upc.length?' ('+upc.length+' upcoming)':'')+'</span>';
+    counter.innerHTML='';
+  }
+
+  cards.innerHTML=open.map(t=>cardHtml(t,false)).join('');
+
+  if(upc.length){
+    upcWrap.innerHTML='<div class="upc-toggle" onclick="this.classList.toggle(\'open\');var c=document.getElementById(\'upcCards\');c.style.display=c.style.display===\'none\'?\'flex\':\'none\'">'
+     +'<span>Upcoming / not yet open ('+upc.length+')</span><span class="chev">▾</span></div>'
+     +'<div class="cards" id="upcCards" style="display:none;padding-top:10px">'+upc.map(t=>cardHtml(t,true)).join('')+'</div>';
+  }else{upcWrap.innerHTML='';}
+}
+
+render();
+</script>
+</body>
+</html>
